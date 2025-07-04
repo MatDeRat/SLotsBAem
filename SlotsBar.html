@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SlotBar</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: radial-gradient(ellipse at center, #440000 0%, #000000 100%);
+      font-family: 'Courier New', monospace;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: gold;
+      overflow: hidden;
+    }
+    h1 {
+      font-size: 4em;
+      text-shadow: 2px 2px 5px red;
+      margin-bottom: 10px;
+    }
+    #currency {
+      font-size: 1.5em;
+      margin-bottom: 20px;
+    }
+    .slot-machine {
+      display: flex;
+      gap: 30px;
+      margin-bottom: 20px;
+      background: linear-gradient(to bottom, #333, #111);
+      padding: 20px 40px;
+      border: 5px solid gold;
+      border-radius: 20px;
+      box-shadow: 0 0 30px gold;
+      position: relative;
+    }
+    .reel {
+      font-size: 4em;
+      width: 100px;
+      height: 100px;
+      background: black;
+      border: 3px inset gold;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ff0000;
+    }
+    button {
+      font-size: 1.5em;
+      padding: 12px 30px;
+      background: gold;
+      color: black;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      box-shadow: 0 0 15px yellow;
+    }
+    button:disabled {
+      background: gray;
+      color: #222;
+      box-shadow: none;
+      cursor: not-allowed;
+    }
+.signature {
+  font-size: 0.9em;
+  color: rgba(255, 255, 0, 1); 
+  font-style: italic;
+  margin-top: -10px;
+    }
+    #message {
+      font-size: 1.3em;
+      height: 1.6em;
+      margin-top: 15px;
+    }
+    .confetti {
+      position: absolute;
+      font-size: 2em;
+      animation: fall 2s linear forwards;
+      pointer-events: none;
+    }
+    @keyframes fall {
+      0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(600px) rotate(360deg); opacity: 0; }
+    }
+    #loseScreen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(10, 0, 0, 0.9);
+      color: gold;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+    }
+    .overlay {
+      text-align: center;
+      font-size: 2em;
+      background: #220000;
+      padding: 40px;
+      border: 4px solid gold;
+      border-radius: 20px;
+      box-shadow: 0 0 20px red;
+    }
+  </style>
+</head>
+<body>
+  <h1>🕹️ SLOT BLAST 777 🕹️</h1>
+  <div class="signature">© Josh Giggles</div>
+  <div id="currency">💰 Sheckels: <span id="sheckels">100</span></div>
+  <div class="slot-machine" id="machine">
+    <div class="reel" id="reel1">🎰</div>
+    <div class="reel" id="reel2">🎰</div>
+    <div class="reel" id="reel3">🎰</div>
+  </div>
+  <button id="spinBtn">Spin for 5 Sheckels</button>
+  <div id="message"></div>
+  <div id="loseScreen">
+    <div class="overlay">
+      <h2>😢 You're out of sheckels!</h2>
+      <p>Refresh the page to play again.</p>
+    </div>
+  </div>
+
+  <script>
+    const symbols = ["7", "🍒", "🍀", "🔔", "💎"];
+    const payouts = { "7": 100, "🍒": 75, "💎": 50, "🔔": 30, "🍀": 20 };
+    let sheckels = parseInt(localStorage.getItem("sheckels")) || 100;
+
+    const reels = [
+      document.getElementById("reel1"),
+      document.getElementById("reel2"),
+      document.getElementById("reel3")
+    ];
+    const spinBtn = document.getElementById("spinBtn");
+    const sheckelsDisplay = document.getElementById("sheckels");
+    const messageBox = document.getElementById("message");
+    const machine = document.getElementById("machine");
+    const loseScreen = document.getElementById("loseScreen");
+
+    function updateCurrencyDisplay() {
+      sheckelsDisplay.textContent = sheckels;
+      localStorage.setItem("sheckels", sheckels);
+      spinBtn.disabled = sheckels < 0;
+      if (sheckels <= 0) {
+        loseScreen.style.display = "flex";
+      }
+    }
+
+    function dropConfettiBurst(delay) {
+      setTimeout(() => {
+        for (let i = 0; i < 25; i++) {
+          const confetti = document.createElement("div");
+          confetti.className = "confetti";
+          confetti.style.left = Math.random() * 300 + "px";
+          confetti.style.top = Math.random() * -200 + "px";
+          confetti.textContent = "💸";
+          machine.appendChild(confetti);
+          setTimeout(() => confetti.remove(), 2000);
+        }
+      }, delay);
+    }
+
+    function dropConfetti() {
+      dropConfettiBurst(300);
+      dropConfettiBurst(1300);
+    }
+
+    function flickerReelWithSlowdown(reel, stopTime, onDone) {
+      const start = performance.now();
+      let cycle = 0;
+      let lastUpdate = 0;
+
+      function step(now) {
+        const elapsed = now - start;
+        const t = Math.min(1, elapsed / stopTime);
+        const interval = 50 + t * 250;
+
+        if (elapsed < stopTime) {
+          if (now - lastUpdate > interval) {
+            reel.textContent = symbols[cycle % symbols.length];
+            cycle++;
+            lastUpdate = now;
+          }
+          requestAnimationFrame(step);
+        } else {
+          setTimeout(() => {
+            const finalSymbol = symbols[Math.floor(Math.random() * symbols.length)];
+            reel.textContent = finalSymbol;
+            if (onDone) onDone(finalSymbol);
+          }, 150);
+        }
+      }
+
+      requestAnimationFrame(step);
+    }
+
+    function evaluateSpin(result) {
+      if (result[0] === result[1] && result[1] === result[2]) {
+        const reward = payouts[result[0]] || 0;
+        sheckels += reward;
+        messageBox.textContent = `🎉 JACKPOT! +${reward} sheckels for ${result[0]} x3!`;
+        dropConfetti();
+      } else {
+        messageBox.textContent = "No win this time...";
+      }
+      updateCurrencyDisplay();
+    }
+
+    function spin() {
+      if (sheckels < 5) return;
+      sheckels -= 5;
+      updateCurrencyDisplay();
+      messageBox.textContent = "";
+      spinBtn.disabled = true;
+
+      const result = [];
+
+      flickerReelWithSlowdown(reels[0], 1000, (symbol) => { result[0] = symbol; });
+      flickerReelWithSlowdown(reels[1], 2000, (symbol) => { result[1] = symbol; });
+      flickerReelWithSlowdown(reels[2], 3000, (symbol) => {
+        result[2] = symbol;
+        evaluateSpin(result);
+      });
+    }
+
+    spinBtn.addEventListener("click", spin);
+    updateCurrencyDisplay();
+  </script>
+
+  <button onclick="window.location.href='roulette.html'">Switch to Roulette Mode</button>
+
+  <button onclick="window.location.href='BlackJ.html'">Switch to Black-Jack Mode</button>
+
+  <button onclick="window.location.href='Poker.html'">Switch to Poker Mode</button>
+</body>
+</html>
