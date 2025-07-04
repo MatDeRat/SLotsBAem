@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Poker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Courier New', monospace;
+      background: radial-gradient(circle, #001122, #000000);
+      color: gold;
+      text-align: center;
+      padding: 20px;
+    }
+    h1 {
+      font-size: 3em;
+      text-shadow: 2px 2px 5px red;
+    }
+    .nav a {
+      margin: 0 10px;
+      padding: 10px;
+      background: gold;
+      color: black;
+      text-decoration: none;
+      border-radius: 8px;
+      box-shadow: 0 0 10px yellow;
+    }
+    .nav, .currency, .pot {
+      margin-bottom: 20px;
+      font-size: 1.2em;
+    }
+    .cards {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin: 10px;
+      font-size: 2em;
+    }
+.signature {
+  font-size: 0.9em;
+  color: rgba(255, 255, 0, 1); 
+  font-style: italic;
+  margin-top: -10px;
+    }
+    .controls {
+      margin: 20px 0;
+    }
+    .controls input, .controls button {
+      font-size: 1em;
+      padding: 8px;
+      margin: 5px;
+      border-radius: 8px;
+      border: none;
+    }
+    .controls input[type="number"] {
+      width: 80px;
+    }
+    .controls button {
+      background: gold;
+      color: black;
+      box-shadow: 0 0 10px yellow;
+      cursor: pointer;
+    }
+    #message {
+      font-size: 1.2em;
+      min-height: 2em;
+    }
+  </style>
+</head>
+<body>
+  <div class="nav">
+    <a href="SlotsBar.html">Return to Slots</a>
+    <a href="roulette.html">Return to Roulette</a>
+    <a href="BlackJ.html">Return to Blackjack</a>
+  </div>
+
+  <h1>♣️Poker♣️</h1>
+  <div class="signature">© Made By Josh Giggles</div>
+  <div class="currency">💰 Sheckels: <span id="sheckels">--</span></div>
+  <div class="pot">🎲 Pot: <span id="pot">0</span></div>
+
+  <div class="controls">
+    Bet Amount: <input type="number" id="betAmount" min="10" value="20" />
+    <button onclick="deal()">Deal</button>
+    <button onclick="reveal()">Reveal</button>
+    <button onclick="resetGame()">Restart</button>
+  </div>
+
+  <div><strong>Your Hand</strong></div>
+  <div class="cards" id="playerHand"></div>
+
+  <div><strong>Dealer's Hand</strong></div>
+  <div class="cards" id="dealerHand"></div>
+
+  <div><strong>Community Cards</strong></div>
+  <div class="cards" id="communityCards"></div>
+
+  <div id="message"></div>
+
+  <script>
+    const suits = ["♠", "♥", "♦", "♣"];
+    const values = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
+    let deck = [], pot = 0, sheckels = parseInt(localStorage.getItem("sheckels")) || 100;
+    let playerHand = [], dealerHand = [], communityCards = [], hasDealt = false, currentBet = 0;
+
+    const sheckelDisplay = document.getElementById("sheckels");
+    const potDisplay = document.getElementById("pot");
+    const playerHandEl = document.getElementById("playerHand");
+    const dealerHandEl = document.getElementById("dealerHand");
+    const communityEl = document.getElementById("communityCards");
+    const messageEl = document.getElementById("message");
+
+    function updateCurrencyDisplay() {
+      sheckelDisplay.textContent = sheckels;
+      potDisplay.textContent = pot;
+      localStorage.setItem("sheckels", sheckels);
+    }
+
+    function renderCards(cards, element) {
+      element.innerHTML = "";
+      cards.forEach(card => {
+        const div = document.createElement("div");
+        div.textContent = `${card.value}${card.suit}`;
+        element.appendChild(div);
+      });
+    }
+
+    function shuffleDeck() {
+      deck = [];
+      suits.forEach(suit => {
+        values.forEach(value => {
+          deck.push({ value, suit });
+        });
+      });
+      deck.sort(() => Math.random() - 0.5);
+    }
+
+    function deal() {
+      currentBet = Math.max(0, parseInt(document.getElementById("betAmount").value));
+      if (sheckels < currentBet) {
+        messageEl.textContent = "❌ Not enough sheckels!";
+        return;
+      }
+      hasDealt = true;
+      shuffleDeck();
+      sheckels -= currentBet;
+      pot = currentBet * 2;
+
+      playerHand = [deck.pop(), deck.pop(), deck.pop()];
+      dealerHand = [deck.pop(), deck.pop(), deck.pop()];
+      communityCards = [deck.pop(), deck.pop(), deck.pop(), deck.pop(), deck.pop()];
+
+      renderCards(playerHand, playerHandEl);
+      renderCards([{ value: "?", suit: "?" }, { value: "?", suit: "?" }], dealerHandEl);
+      communityEl.innerHTML = "❓❓❓❓❓";
+      messageEl.textContent = "Cards dealt. Press 'Reveal' to see the outcome.";
+
+      updateCurrencyDisplay();
+    }
+
+    function scoreHand(hand) {
+      let score = 0;
+      hand.forEach(card => {
+        if (card.value === "A") score += 14;
+        else if (card.value === "K") score += 13;
+        else if (card.value === "Q") score += 12;
+        else if (card.value === "J") score += 11;
+        else score += parseInt(card.value);
+      });
+      return score;
+    }
+
+    function reveal() {
+      if (!hasDealt) {
+        messageEl.textContent = "⏳ You need to deal first!";
+        return;
+      }
+
+      renderCards(dealerHand, dealerHandEl);
+      renderCards(communityCards, communityEl);
+
+      const playerFull = [...playerHand, ...communityCards];
+      const dealerFull = [...dealerHand, ...communityCards];
+
+      const playerScore = scoreHand(playerFull);
+      const dealerScore = scoreHand(dealerFull);
+
+      let outcome = "";
+      if (playerScore > dealerScore) {
+        outcome = `🏆 You win! +${pot} sheckels`;
+        sheckels += pot;
+      } else if (dealerScore > playerScore) {
+        outcome = "😢 Dealer wins... better luck next time!";
+      } else {
+        outcome = "🤝 It's a tie! Bet refunded.";
+        sheckels += currentBet;
+      }
+
+      pot = 0;
+      hasDealt = false;
+      updateCurrencyDisplay();
+      messageEl.textContent = outcome;
+    }
+
+    function resetGame() {
+      playerHand = [];
+      dealerHand = [];
+      communityCards = [];
+      pot = 0;
+      messageEl.textContent = "";
+      playerHandEl.innerHTML = "";
+      dealerHandEl.innerHTML = "";
+      communityEl.innerHTML = "";
+      updateCurrencyDisplay();
+    }
+
+    updateCurrencyDisplay();
+  </script>
+</body>
+</html>
