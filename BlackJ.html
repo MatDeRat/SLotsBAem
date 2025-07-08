@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Blackjack</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Courier New', monospace;
+      background: radial-gradient(ellipse at center, #002211 0%, #000000 100%);
+      color: gold;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    h1 {
+      font-size: 4em;
+      text-shadow: 2px 2px 5px limegreen;
+      margin-bottom: 10px;
+    }
+    .nav-btns {
+      position: fixed;
+      top: 10px;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      padding: 0 20px;
+      z-index: 999;
+    }
+    .nav-btns a {
+      font-size: 1.5em;
+      background: gold;
+      color: black;
+      padding: 10px;
+      border-radius: 8px;
+      text-decoration: none;
+      box-shadow: 0 0 10px yellow;
+    }
+    #currency {
+      font-size: 1.5em;
+      margin-bottom: 10px;
+    }
+    .hand {
+      display: flex;
+      gap: 10px;
+      margin: 10px;
+      font-size: 2em;
+    }
+    button {
+      font-size: 1.2em;
+      margin: 10px;
+      padding: 10px 20px;
+      background: gold;
+      color: black;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      box-shadow: 0 0 15px yellow;
+    }
+    #message {
+      font-size: 1.4em;
+      margin-top: 10px;
+      height: 2em;
+     }
+.signature {
+  font-size: 0.9em;
+  color: rgba(255, 255, 0, 1); 
+  font-style: italic;
+  margin-top: -10px;
+}
+    input[type="number"] {
+      font-size: 1em;
+      width: 60px;
+      margin-left: 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      padding: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="nav-btns">
+    <a href="SlotsBar.html">Return to Slots</a>
+    <a href="roulette.html">Return to roulette</a>
+    <a href="Poker.html">Return to Poker</a>
+  </div>
+
+  <h1>🃏 Blackjack 🃏</h1>
+  <div class="signature">© Made By Josh Giggles</div>
+  <div id="currency">💰 Sheckels: <span id="sheckels">100</span></div>
+  <div>
+    Bet Amount: <input type="number" id="betAmount" min="5" value="5">
+  </div>
+  <div><strong>Dealer's Hand:</strong></div>
+  <div id="dealer" class="hand"></div>
+  <div><strong>Your Hand:</strong></div>
+  <div id="player" class="hand"></div>
+  <div><strong>Your Score:</strong> <span id="playerScore">0</span></div>
+  <div>
+    <button id="hitBtn">Hit</button>
+    <button id="standBtn">Stand</button>
+    <button id="restartBtn">Restart</button>
+  </div>
+  <div id="message"></div>
+
+  <script>
+    const suits = ["♠", "♥", "♦", "♣"];
+    const values = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+    let deck = [];
+    let playerHand = [];
+    let dealerHand = [];
+    let sheckels = parseInt(localStorage.getItem("sheckels")) || 100;
+    let currentBet = 5;
+
+    const sheckelsDisplay = document.getElementById("sheckels");
+    const betInput = document.getElementById("betAmount");
+    const messageBox = document.getElementById("message");
+    const dealerDisplay = document.getElementById("dealer");
+    const playerDisplay = document.getElementById("player");
+    const hitBtn = document.getElementById("hitBtn");
+    const standBtn = document.getElementById("standBtn");
+    const restartBtn = document.getElementById("restartBtn");
+
+    function updateCurrencyDisplay() {
+      sheckelsDisplay.textContent = sheckels;
+      localStorage.setItem("sheckels", sheckels);
+    }
+
+    function drawCard() {
+      return deck.pop();
+    }
+
+    function calculate(hand) {
+      let sum = 0;
+      let aces = 0;
+      hand.forEach(card => {
+        let val = card.value;
+        if (val === "A") {
+          aces++;
+          sum += 11;
+        } else if (["K", "Q", "J"].includes(val)) {
+          sum += 10;
+        } else {
+          sum += parseInt(val);
+        }
+      });
+      while (sum > 21 && aces > 0) {
+        sum -= 10;
+        aces--;
+      }
+      return sum;
+    }
+
+    function renderHand(hand, element, scoreElementId) {
+  element.innerHTML = "";
+  hand.forEach(card => {
+    const div = document.createElement("div");
+    div.textContent = `${card.value}${card.suit}`;
+    element.appendChild(div);
+  });
+
+  if (scoreElementId) {
+    const scoreEl = document.getElementById(scoreElementId);
+    if (scoreEl) {
+      scoreEl.textContent = calculate(hand);
+    }
+  }
+}
+
+    function initializeGame() {
+      currentBet = Math.max(0, parseInt(betInput.value)) || 5;
+      if (sheckels < currentBet) {
+        messageBox.textContent = "Not enough sheckels!";
+        hitBtn.disabled = true;
+        standBtn.disabled = true;
+        return;
+      }
+      sheckels -= currentBet;
+      updateCurrencyDisplay();
+
+      deck = [];
+      suits.forEach(suit => {
+        values.forEach(value => {
+          deck.push({ value, suit });
+deck.push({ value, suit, chosenValue: value === "A" ? null : undefined });
+        });
+      });
+      deck.sort(() => 0.5 - Math.random());
+
+      playerHand = [drawCard(), drawCard()];
+      dealerHand = [drawCard(), drawCard()];
+
+      renderHand(playerHand, playerDisplay, "playerScore");
+      document.getElementById("playerScore").textContent = calculate(playerHand);
+      renderHand([dealerHand[0]], dealerDisplay);
+
+      messageBox.textContent = "";
+      hitBtn.disabled = false;
+      standBtn.disabled = false;
+    }
+
+    function evaluateGame() {
+  const playerScore = calculate(playerHand);
+  renderHand(dealerHand, dealerDisplay);
+  let dealerScore = calculate(dealerHand);
+
+  // Dealer draws normally
+  while (dealerScore < 17) {
+    dealerHand.push(drawCard());
+    dealerScore = calculate(dealerHand);
+    renderHand(dealerHand, dealerDisplay);
+  }
+
+  const playerWins = Math.random() < 0.5; // 10% win chance
+
+  if (playerScore > 21) {
+    messageBox.textContent = `💥 You busted! Dealer had ${dealerScore}`;
+  } else if (dealerScore > 21) {
+    if (playerWins) {
+      sheckels += currentBet * 2;
+      messageBox.textContent = `🏆 You win! Dealer busted with ${dealerScore}`;
+    } else {
+      messageBox.textContent = `😢 You lose... Dealer busted but house wins!`;
+    }
+  } else if (playerScore > dealerScore) {
+    sheckels += currentBet * 2;
+    messageBox.textContent = `🏆 You win! Dealer had ${dealerScore}`;
+  } else if (playerScore === dealerScore) {
+    sheckels += currentBet;
+    messageBox.textContent = `🤝 Tie! Dealer had ${dealerScore}`;
+  } else {
+    messageBox.textContent = `😢 You lose... Dealer had ${dealerScore}`;
+  }
+
+  updateCurrencyDisplay();
+  hitBtn.disabled = true;
+  standBtn.disabled = true;
+}
+
+    hitBtn.addEventListener("click", () => {
+      playerHand.push(drawCard());
+      renderHand(playerHand, playerDisplay, "playerScore");
+      if (calculate(playerHand) > 21) {
+        messageBox.textContent = "💥 You busted!";
+        hitBtn.disabled = true;
+        standBtn.disabled = true;
+        renderHand(dealerHand, dealerDisplay);
+      }
+    });
+
+    standBtn.addEventListener("click", () => {
+      evaluateGame();
+    });
+
+    restartBtn.addEventListener("click", () => {
+      initializeGame();
+    });
+
+    updateCurrencyDisplay();
+    initializeGame();
+  </script>
+</body>
+</html>
